@@ -1,0 +1,76 @@
+#+OPTIONS: toc:nil num:nil author:nil creator:nil \n:nil |:t
+#+OPTIONS: @:t ::t ^:t -:t f:t *:t <:t
+
+* ゲームAI覚書
+
+** ルールベースAI
+
+   ルールを入れ子にしてはいけない。
+   一つのルールは他のルールに依存してはいけない。
+   Ruleは敵と考えていい。
+   distanceは実際には敵との距離を計算して出す。
+
+   : class Player < Hash
+   : end
+
+   評価点 = 静的評価値 + a * 残り体力 + b * 距離
+
+   ※ (a + b) == 1.0 とする
+
+   : class Rule < Hash
+   :   def evaluate(player)
+   :     (self[:base] || 0) + self[:a] * player[:hp] + self[:b] * player[:distance]
+   :   end
+   : end
+
+   ルールのセットを管理する別クラスが必要
+
+   : class RuleSelector
+   :   attr_accessor :rules
+   :   def initialize
+   :     @rules = []
+   :   end
+   :   def choice(player)
+   :     @rules.collect{|r|r.evaluate(player)} # => [5.6000000000000005, 7.0], [9.2, 6.4], [5.6000000000000005, 7.0, 15.0]
+   :     @rules.sort_by{|r|r.evaluate(player)}.last
+   :   end
+   : end
+   :
+   プレイヤーの体力が高いほど「逃げる」。プレイヤーとの距離が離れているほど「追う」。二つのルールを登録。
+
+   : selector = RuleSelector.new
+   : selector.rules << Rule[:name => "逃げる", :base => 0.2, :a => 0.8, :b => 0.2]
+   : selector.rules << Rule[:name => "追う",   :base => 0.4, :a => 0.2, :b => 0.8]
+
+   プレイヤーの状態に合わせて選択するルールが変わる
+
+   : player1 = Player[:hp =>  5, :distance => 7]
+   : player2 = Player[:hp => 10, :distance => 5]
+
+   : selector.choice(player1)[:name]  # => "追う"
+   : selector.choice(player2)[:name]  # => "逃げる"
+
+   静的評価値が高くして「飛ぶ」を選択させる場合
+
+   : selector.rules << Rule[:name => "飛ぶ",   :base => 9.0, :a => 0.5, :b => 0.5]
+   : selector.choice(player1)[:name]  # => "飛ぶ"
+
+   選択方法はこの他、ランダムにどちらかのルールを選ぶ、交互に選択などがある。
+   評価したあと評価関数を変化させることで簡易学習になる。
+
+** 参考
+
+   - WEB+DBのはじめてのゲームAI
+
+** 用語
+
+#+ATTR_HTML: border="1" rules="all" frame="all"
+   | 用語           | 英語          | 意味・使い方など                                         |
+   |----------------+---------------+----------------------------------------------------------|
+   | ルールベースAI | Rule based AI | ルールが単位                                             |
+   | 単位           | atomic        | ルールの単位                                             |
+   | 背反           | exclusive     | 二つあるルールが同時に発火することがない場合、背反である |
+   | ルールの競合   |               | ルールが複数発火したとき                                 |
+   | 解消           |               | 競合したルールを解決すること                             |
+   | 発火           | fired         | ルールの条件が満たされた状態のこと                       |
+   | ルールセレクタ |               | 競合するルールを解消するモジュール                       |
