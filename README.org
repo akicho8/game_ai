@@ -35,7 +35,7 @@
    :     @rules.sort_by{|r|r.evaluate(player)}.last
    :   end
    : end
-   :
+
    プレイヤーの体力が高いほど「逃げる」。プレイヤーとの距離が離れているほど「追う」。二つのルールを登録。
 
    : selector = RuleSelector.new
@@ -58,6 +58,167 @@
    選択方法はこの他、ランダムにどちらかのルールを選ぶ、交互に選択などがある。
    評価したあと評価関数を変化させることで簡易学習になる。
 
+** ステートベースAI
+
+   mode と mode_count で行なっていた方法に近い。
+
+   以下は、階層なしで状態とカウンタをクラス化したもの。
+   結局はifの連続で書く。
+
+   : module Statable
+   :   attr_reader :counter, :key
+   :
+   :   def initialize(key)
+   :     transition(key)
+   :   end
+   :
+   :   def transition(key)
+   :     @key = key
+   :     @counter = 0
+   :   end
+   :
+   :   def transition!(key)
+   :     transition(key)
+   :     throw :transit
+   :   end
+   :
+   :   def transition_loop(&block)
+   :     begin
+   :       ret = catch(:transit) do
+   :         yield
+   :         true
+   :       end
+   :     end until ret == true
+   :     @counter += 1
+   :   end
+   : end
+   :
+   : class State
+   :   include Statable
+   : end
+   :
+   : state = State.new(:mode_a)
+   : 3.times do
+   :   state.transition_loop do
+   :     case state.key
+   :     when :mode_a
+   :       if state.counter == 1
+   :         state.transition! :mode_b
+   :       end
+   :     when :mode_b
+   :       # ...
+   :     end
+   :   end
+   : end
+
+   デザパタのStateパターンを使いつつ階層化。
+   キャッチする名前は階層化しているためグローバルだとまずい。なので object_id でユニークにしてある。
+   a a1 b b1 の順に遷移する。
+
+   : class State
+   :   attr_reader :counter, :current
+   :
+   :   def initialize(*args)
+   :     transition(*args)
+   :   end
+   :
+   :   def transition(key, *args)
+   :     @current = key.to_s.classify.constantize.new(*args)
+   :   end
+   :
+   :   def transition!(key, *args)
+   :     transition(key, *args)
+   :     throw "transit_#{object_id}".to_sym
+   :   end
+   :
+   :   def run
+   :     begin
+   :       ret = catch("transit_#{object_id}".to_sym) do
+   :         @current.run
+   :         true
+   :       end
+   :     end until ret == true
+   :     @current.counter += 1
+   :   end
+   : end
+   :
+   : class Player
+   :   attr_accessor :state
+   :
+   :   def initialize
+   :     @state = State.new(:mode_a, self)
+   :   end
+   :
+   :   def run
+   :     @state.run
+   :   end
+   :
+   :   def top_level_transition!(key)
+   :     @state.transition!(key, self)
+   :   end
+   : end
+   :
+   : class StateBase
+   :   attr_accessor :player, :counter, :sub_state
+   :
+   :   def initialize(player)
+   :     @player = player
+   :     @counter = 0
+   :   end
+   :
+   :   def run
+   :     if @sub_state
+   :       @sub_state.run
+   :     end
+   :   end
+   : end
+   :
+   : class ModeA < StateBase
+   :   def run
+   :     if @counter == 1
+   :       p "a"
+   :       @sub_state = State.new(:mode_a1, @player)
+   :     end
+   :     super
+   :   end
+   : end
+   :
+   : class ModeA1 < StateBase
+   :   def run
+   :     p "a1"
+   :     @player.top_level_transition!(:mode_b)
+   :     super
+   :   end
+   : end
+   :
+   : class ModeB < StateBase
+   :   def run
+   :     if @counter == 1
+   :       p "b"
+   :       @sub_state = State.new(:mode_b1, @player)
+   :     end
+   :     super
+   :   end
+   : end
+   :
+   : class ModeB1 < StateBase
+   :   def run
+   :     p "b1"
+   :     @player.top_level_transition!(:mode_a)
+   :     super
+   :   end
+   : end
+   :
+   : player = Player.new
+   : 3.times{ player.run }
+   : # >> "a"
+   : # >> "a1"
+   : # >> "b"
+   : # >> "b1"
+
+   クラスが多すぎて後で見てもわけがわからん。
+   これだけ書くのにも時間がかかるし、デバッグがしずらいのも難点。
+
 ** 参考
 
    - WEB+DBのはじめてのゲームAI
@@ -65,12 +226,14 @@
 ** 用語
 
 #+ATTR_HTML: border="1" rules="all" frame="all"
-   | 用語           | 英語          | 意味・使い方など                                         |
-   |----------------+---------------+----------------------------------------------------------|
-   | ルールベースAI | Rule based AI | ルールが単位                                             |
-   | 単位           | atomic        | ルールの単位                                             |
-   | 背反           | exclusive     | 二つあるルールが同時に発火することがない場合、背反である |
-   | ルールの競合   |               | ルールが複数発火したとき                                 |
-   | 解消           |               | 競合したルールを解決すること                             |
-   | 発火           | fired         | ルールの条件が満たされた状態のこと                       |
-   | ルールセレクタ |               | 競合するルールを解消するモジュール                       |
+   | 用語           | 英語                | 意味・使い方など                                         |
+   |----------------+---------------------+----------------------------------------------------------|
+   | ルールベースAI | Rule based AI       | ルールが単位                                             |
+   | 単位           | atomic              | ルールの単位                                             |
+   | 背反           | exclusive           | 二つあるルールが同時に発火することがない場合、背反である |
+   | ルールの競合   |                     | ルールが複数発火したとき                                 |
+   | 解消           |                     | 競合したルールを解決すること                             |
+   | 発火           | fired               | ルールの条件が満たされた状態のこと                       |
+   | ルールセレクタ |                     | 競合するルールを解消するモジュール                       |
+   | 有限状態機械   | Finite Sate Machine |                                                          |
+   | 震動           |                     | 高速に2つのステートをいったりきたり(ダメな状態)          |
