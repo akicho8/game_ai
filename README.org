@@ -423,6 +423,75 @@
    名前をつけたボックスが、名前は置いたままにして別のボックスのところに移動できてしまうのもおかしな話だし。
    なので上記のサンプルは *間違い*
 
+** タスクベースAI
+
+   1:N の木構造ではなく N:N
+
+   : class Task
+   :   attr_accessor :name, :next_tasks, :prev_tasks
+   :
+   :   def initialize(name)
+   :     @@all << self
+   :     @name = name
+   :     @prev_tasks = []
+   :     @next_tasks = []
+   :   end
+   :
+   :   def chain(task)
+   :     @next_tasks << task
+   :     task.prev_tasks << self
+   :   end
+   : end
+
+   クリスタルAを持っていたら、吸血城Bに行けて、行くとフラグが立って、Cに行ける、みたいなシナリオを定義。
+
+   : A -----> B -----> C
+
+   : a = Task.new("A")
+   : b = Task.new("B")
+   : c = Task.new("C")
+   : a.chain(b)
+   : b.chain(c)
+   : Task.dump(:next_tasks)  # => ["A → B", "B → C"]
+   : Task.dump(:prev_tasks)  # => ["B → A", "C → B"]
+
+   みんなすぐにクリアしてしまったので、 吸血城のなかで、ドラキュラXとYを倒さないといけないとする
+
+   :
+   :     +--> X --+
+   : A --+        +--> C
+   :     +--> Y --+
+   :
+
+   : Task.all.clear
+   : a = Task.new("A")
+   : x = Task.new("X")
+   : y = Task.new("Y")
+   : c = Task.new("C")
+   : a.chain(x)
+   : a.chain(y)
+   : x.chain(c)
+   : y.chain(c)
+   : Task.dump(:next_tasks)  # => ["A → X", "A → Y", "X → C", "Y → C"]
+   : Task.dump(:prev_tasks)  # => ["X → A", "Y → A", "C → X", "C → Y"]
+
+   B を X と Y に分けたけどAからの分岐が二つになってしまうのはいいんだろうか → いいはず。
+   B の中に隠蔽して X と Y を持つ？ → ちがうはず
+
+   タスクに必要なメソッドを想像
+
+   : class Task
+   :   # 前のタスクが終わっているか？(このタスクが実行可能か？)
+   :   def active?
+   :     @prev_tasks.all?{|t|t.completed?}
+   :   end
+   :
+   :   # このタスクが終了したか？
+   :   def completed?
+   :     # player.items.include?(@name)
+   :   end
+   : end
+
 ** 参考
 
    - WEB+DBのはじめてのゲームAI
@@ -430,22 +499,23 @@
 ** 用語
 
 #+ATTR_HTML: border="1" rules="all" frame="all"
-   | 用語               | 英語                   | 意味・使い方など                                         |
-   |--------------------+------------------------+----------------------------------------------------------|
-   | ルールベースAI     | Rule based AI          | ルールが単位                                             |
-   | 単位               | atomic                 | ルールの単位                                             |
-   | 背反               | exclusive              | 二つあるルールが同時に発火することがない場合、背反である |
-   | ルールの競合       |                        | ルールが複数発火したとき                                 |
-   | 解消               |                        | 競合したルールを解決すること                             |
-   | 発火               | fired                  | ルールの条件が満たされた状態のこと                       |
-   | ルールセレクタ     |                        | 競合するルールを解消するモジュール                       |
-   | FSM                | Finite Sate Machine    | 有限状態機械                                             |
-   | 震動               |                        | 高速に2つのステートをいったりきたり(ダメな状態)          |
-   | キャラクターAI     |                        | 敵の意思                                                 |
-   | メタAI             |                        | 状況や進行を動的に変更                                   |
-   | プロシージャル技術 |                        | 地形や物体を自動生成する技術                             |
-   | 循環構造           | cyclic                 |                                                          |
-   | DAG                | Directed Acyclic Graph | 非循環方式型(Behavior Tree とも言われる)                 |
-   | 宣言的手法         | Declarative Method     | 実行可能条件を各ビヘイビアが持つこと                     |
-   | ボックス           |                        | 同じ抽象度のビヘイビアのまとまり                         |
-   | レイヤー           |                        | ボックスのこと                                           |
+   | 用語               | 英語                      | 意味・使い方など                                         |
+   |--------------------+---------------------------+----------------------------------------------------------|
+   | ルールベースAI     | Rule based AI             | ルールが単位                                             |
+   | 単位               | atomic                    | ルールの単位                                             |
+   | 背反               | exclusive                 | 二つあるルールが同時に発火することがない場合、背反である |
+   | ルールの競合       |                           | ルールが複数発火したとき                                 |
+   | 解消               |                           | 競合したルールを解決すること                             |
+   | 発火               | fired                     | ルールの条件が満たされた状態のこと                       |
+   | ルールセレクタ     |                           | 競合するルールを解消するモジュール                       |
+   | FSM                | Finite Sate Machine       | 有限状態機械                                             |
+   | 震動               |                           | 高速に2つのステートをいったりきたり(ダメな状態)          |
+   | キャラクターAI     |                           | 敵の意思                                                 |
+   | メタAI             |                           | 状況や進行を動的に変更                                   |
+   | プロシージャル技術 |                           | 地形や物体を自動生成する技術                             |
+   | 循環構造           | cyclic                    |                                                          |
+   | DAG                | Directed Acyclic Graph    | 非循環方式型(Behavior Tree とも言われる)                 |
+   | 宣言的手法         | Declarative Method        | 実行可能条件を各ビヘイビアが持つこと                     |
+   | ボックス           |                           | 同じ抽象度のビヘイビアのまとまり                         |
+   | レイヤー           |                           | ボックスのこと                                           |
+   | HTN                | Hierarchical Task Network | タスクを分解して木にしたもの                             |

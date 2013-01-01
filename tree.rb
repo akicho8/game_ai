@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# 木構造構造
+# 木構造
 #
 
 require "kconv"
