@@ -590,6 +590,48 @@
    :   end
    : end
 
+** ユーティリティベースAI
+
+   眠さパラメータをsinカーブで動的に変更する例 (これがユーティリティというわけではなさそう)
+
+   : class Human
+   :   def sleepy(t)
+   :     Math.sin(2 * Math::PI / 24 * t)
+   :   end
+   : end
+   :
+   : human = Human.new
+   : 0.step(24, 6).collect{|t|[t, '%.2f' % human.sleepy(t)]}
+   : # => [[0, "0.00"], [6, "1.00"], [12, "0.00"], [18, "-1.00"], [24, "-0.00"]]
+
+   ここから別。AppleオブジェクトはHumanにとってどんなメリットがあるかを効用として数値化して返す。
+   human.hungry はサインカーブではなく、時間が立つにつれて下がってくる。Appleを食うと上がる。
+   で、Appleを選択すると 0.5 のメリットがあることがわかる。
+   他のクラスでは social の方を高くして返せばそっちを選択することになる。
+   そういうのがユーティリティというらしい。たぶん。
+
+   : class Human
+   :   attr_accessor :hungry, :social
+   :
+   :   def initialize
+   :     @hungry = 0
+   :     @social = 0
+   :   end
+   : end
+   :
+   : class Apple
+   :   def hungry(human)
+   :     (1.0 - human.hungry) / 2.0
+   :   end
+   :   def social(human)
+   :     0
+   :   end
+   : end
+   :
+   : human = Human.new
+   : apple = Apple.new
+   : [:hungry, :social].collect{|m|[apple.send(m, human), m]} # => [[0.5, :hungry], [0, :social]]
+
 ** 参考
 
    - WEB+DBのはじめてのゲームAI
@@ -599,6 +641,7 @@
 #+ATTR_HTML: border="1" rules="all" frame="all"
    | 用語               | 英語                          | 意味・使い方など                                         |
    |--------------------+-------------------------------+----------------------------------------------------------|
+   | 意思決定           | AI                            |                                                          |
    | ルールベースAI     | Rule based AI                 | ルールが単位                                             |
    | 単位               | atomic                        | ルールの単位                                             |
    | 背反               | exclusive                     | 二つあるルールが同時に発火することがない場合、背反である |
@@ -620,3 +663,5 @@
    | Robust AI          |                               | 目的にまっすぐ進んでいくAI                               |
    | ゴール思考         | Goal oriented                 |                                                          |
    | 階層型ゴール思考AI | Hierarchical Goal oriented AI |                                                          |
+   | 効用               | Utility                       |                                                          |
+   | アフォーダンス     |                               | 生物が環境の中で許される行動のこと。りんご=食べれる      |
