@@ -1,0 +1,20 @@
+PATH
+  remote: ../tree_support
+  specs:
+    tree_support (0.0.2)
+      GraphvizR
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    GraphvizR (0.5.1)
+      hoe (>= 1.2.0)
+    hoe (3.6.1)
+      rake (>= 0.8, < 11.0)
+    rake (10.0.4)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  tree_support!
