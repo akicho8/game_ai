@@ -67,21 +67,21 @@
 
    : module Statable
    :   attr_reader :counter, :key
-   :
+   : 
    :   def initialize(key)
    :     transition(key)
    :   end
-   :
+   : 
    :   def transition(key)
    :     @key = key
    :     @counter = 0
    :   end
-   :
+   : 
    :   def transition!(key)
    :     transition(key)
    :     throw :transit
    :   end
-   :
+   : 
    :   def transition_loop(&block)
    :     begin
    :       ret = catch(:transit) do
@@ -117,20 +117,20 @@
 
    : class State
    :   attr_reader :counter, :current
-   :
+   : 
    :   def initialize(*args)
    :     transition(*args)
    :   end
-   :
+   : 
    :   def transition(key, *args)
    :     @current = key.to_s.classify.constantize.new(*args)
    :   end
-   :
+   : 
    :   def transition!(key, *args)
    :     transition(key, *args)
    :     throw "transit_#{object_id}".to_sym
    :   end
-   :
+   : 
    :   def run
    :     begin
    :       ret = catch("transit_#{object_id}".to_sym) do
@@ -141,38 +141,38 @@
    :     @current.counter += 1
    :   end
    : end
-   :
+   : 
    : class Player
    :   attr_accessor :state
-   :
+   : 
    :   def initialize
    :     @state = State.new(:mode_a, self)
    :   end
-   :
+   : 
    :   def run
    :     @state.run
    :   end
-   :
+   : 
    :   def top_level_transition!(key)
    :     @state.transition!(key, self)
    :   end
    : end
-   :
+   : 
    : class StateBase
    :   attr_accessor :player, :counter, :sub_state
-   :
+   : 
    :   def initialize(player)
    :     @player = player
    :     @counter = 0
    :   end
-   :
+   : 
    :   def run
    :     if @sub_state
    :       @sub_state.run
    :     end
    :   end
    : end
-   :
+   : 
    : class ModeA < StateBase
    :   def run
    :     if @counter == 1
@@ -182,7 +182,7 @@
    :     super
    :   end
    : end
-   :
+   : 
    : class ModeA1 < StateBase
    :   def run
    :     p "a1"
@@ -190,7 +190,7 @@
    :     super
    :   end
    : end
-   :
+   : 
    : class ModeB < StateBase
    :   def run
    :     if @counter == 1
@@ -200,7 +200,7 @@
    :     super
    :   end
    : end
-   :
+   : 
    : class ModeB1 < StateBase
    :   def run
    :     p "b1"
@@ -208,7 +208,7 @@
    :     super
    :   end
    : end
-   :
+   : 
    : player = Player.new
    : 3.times{ player.run }
    : # >> "a"
@@ -546,11 +546,11 @@
    :   def completed?
    :     true
    :   end
-   :
+   : 
    :   def activate?
    :     true
    :   end
-   :
+   : 
    :   def process
    :     @status = :active
    :     @goals.each{|e|e.process}
