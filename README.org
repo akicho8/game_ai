@@ -92,11 +92,11 @@
    :     @counter += 1
    :   end
    : end
-   :
+   : 
    : class State
    :   include Statable
    : end
-   :
+   : 
    : state = State.new(:mode_a)
    : 3.times do
    :   state.transition_loop do
@@ -225,16 +225,16 @@
 
    : class Box
    :   attr_accessor :selector, :list
-   :
+   : 
    :   def initialize
    :     @selector = "確率的選択"
    :     @list = []
    :   end
-   :
+   : 
    :   def <<(node)
    :     @list << node
    :   end
-   :
+   : 
    :   def get_by_selector
    :     children = @list.find_all{|n|n.executable?}
    :     case @selector
@@ -256,17 +256,17 @@
 
    : class Behavior < Tree::Node
    :   attr_accessor :box     # この中の list に複数の子ビヘイビアが入る
-   :
+   : 
    :   def initialize(name, &block)
    :     @box = Box.new       # 子ビヘイビアはただの配列ではなく「選択方法」を知っている配列でないといけない
    :     super
    :   end
-   :
+   : 
    :   # 各ビヘイビアは現在の状況で実行可能かどうかを自分自身で宣言する→宣言的手法
    :   def executable?
    :     true
    :   end
-   :
+   : 
    :   def children
    :     @box.list
    :   end
@@ -361,7 +361,7 @@
    : a = root.box.list[0].box.list[0]   # 攻撃のノードを取得
    : a_box = a.box                      # 攻撃の下の木をいったん退避
    : a.box = Box.new                    # そこは無くなるので空にしとく
-   :
+   : 
    : b = root.box.list[1].box.list.last # 「逃走する」のノードを取得して
    : a_box.list.each{|n|n.parent = b}   # 親を変更して(←これ本来は不要。treeモジュール表示に必要だから入れてるだけ)
    : b.box = a_box                      # 逃走するにぶらさがるグループを置き換え
@@ -404,14 +404,14 @@
 
    : class Task
    :   attr_accessor :name, :next_tasks, :prev_tasks
-   :
+   : 
    :   def initialize(name)
    :     @@all << self
    :     @name = name
    :     @prev_tasks = []
    :     @next_tasks = []
    :   end
-   :
+   : 
    :   def chain(task)
    :     @next_tasks << task
    :     task.prev_tasks << self
@@ -432,11 +432,11 @@
 
    みんなすぐにクリアしてしまったので、 吸血城のなかで、ドラキュラXとYを倒さないといけないとする
 
-   :
+   : 
    :     +--> X --+
    : A --+        +--> C
    :     +--> Y --+
-   :
+   : 
 
    : Task.all.clear
    : a = Task.new("A")
@@ -460,7 +460,7 @@
    :   def active?
    :     @prev_tasks.all?{|t|t.completed?}
    :   end
-   :
+   : 
    :   # このタスクが終了したか？
    :   def completed?
    :     # player.items.include?(@name)
@@ -473,16 +473,16 @@
    :   # 成功したか？
    :   def completed?
    :   end
-   :
+   : 
    :   # 開始できるか？ (毎回呼ばれるので今、有効か？の意味でもある)
    :   def activate?
    :   end
-   :
+   : 
    :   # 処理内容
    :   def process
    :     # completed, active, failed を返す
    :   end
-   :
+   : 
    :   # 後処理
    :   def after_process
    :     # completed, failed に応じた処理
@@ -496,15 +496,15 @@
    :     @counter = 0
    :     @status = 0
    :   end
-   :
+   : 
    :   def completed?
    :     true
    :   end
-   :
+   : 
    :   def activate?
    :     true
    :   end
-   :
+   : 
    :   def process
    :     @status = :active
    :     if @counter >= 1
@@ -515,12 +515,12 @@
    :     @counter += 1
    :     @status
    :   end
-   :
+   : 
    :   def after_process
    :     puts @status
    :   end
    : end
-   :
+   : 
    : goal = Goal.new
    : loop do
    :   if goal.activate?
@@ -542,7 +542,7 @@
    :     @status = 0
    :     @goals = []
    :   end
-   :
+   : 
    :   def completed?
    :     true
    :   end
@@ -559,7 +559,7 @@
    :     end
    :     @status
    :   end
-   :
+   : 
    :   def after_process
    :     @goals.each(&:after_process)
    :   end
@@ -574,7 +574,7 @@
    :     Math.sin(2 * Math::PI / 24 * t)
    :   end
    : end
-   :
+   : 
    : human = Human.new
    : 0.step(24, 6).collect{|t|[t, '%.2f' % human.sleepy(t)]}
    : # => [[0, "0.00"], [6, "1.00"], [12, "0.00"], [18, "-1.00"], [24, "-0.00"]]
@@ -587,13 +587,13 @@
 
    : class Human
    :   attr_accessor :hungry, :social
-   :
+   : 
    :   def initialize
    :     @hungry = 0
    :     @social = 0
    :   end
    : end
-   :
+   : 
    : class Apple
    :   def hungry(human)
    :     (1.0 - human.hungry) / 2.0
@@ -602,7 +602,7 @@
    :     0
    :   end
    : end
-   :
+   : 
    : human = Human.new
    : apple = Apple.new
    : [:hungry, :social].collect{|m|[apple.send(m, human), m]} # => [[0.5, :hungry], [0, :social]]
