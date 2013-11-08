@@ -607,7 +607,7 @@
    : apple = Apple.new
    : [:hungry, :social].collect{|m|[apple.send(m, human), m]} # => [[0.5, :hungry], [0, :social]]
 
-** 参考
+** 教科書
 
    - WEB+DBのはじめてのゲームAI
 

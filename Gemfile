@@ -1,2 +1,6 @@
 source "https://rubygems.org"
 gem "tree_support", github: "akicho8/tree_support"
+gem "stylet",       github: "akicho8/stylet"
+gem "stylet_math",  github: "akicho8/stylet_math"
+gem "rain_table",   github: "akicho8/rain_table"
+gem "gnuplot"
