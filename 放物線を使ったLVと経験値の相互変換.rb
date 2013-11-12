@@ -1,114 +1,177 @@
 # -*- coding: utf-8 -*-
 #
-# 経験値曲線 二次関数版
+# 二次関数を使ったXYの相互変換
 #
-# 高等学校数学I/二次関数 - Wikibooks
-# http://ja.wikibooks.org/wiki/%E9%AB%98%E7%AD%89%E5%AD%A6%E6%A0%A1%E6%95%B0%E5%AD%A6I/%E4%BA%8C%E6%AC%A1%E9%96%A2%E6%95%B0
+#   レベル1..99が経験値0..9999に対応する二次関数でレベル30のときの経験値は？ またその逆は？
 #
-# y = a * (x - p)**2 + q
-# x = Math.sqrt(((exp-q).to_f / a).abs) + p
-# a = (y - q).to_f / ((x - p) ** 2)
+#     curve = ParabolaCurve.create(1..99, 0..9999)
+#     exp = curve.y_by_x(30)        # => 875.5892336526448
+#     curve.x_by_y(exp)             # => 30.0
 #
-# 開始 (p, q) 終端 (x, y) を入れると a が求まる
-# x か y を入れたら片方が求まる
+#   レベル1のとき経験値0で、99のとき9999になる曲線で── と考えるとき用
 #
-
+#     curve = ParabolaCurve.new(1, 0, 99, 9999)
+#
+#   方程式
+#
+#     y = a * (x - p)**2 + q
+#     x = Math.sqrt(((exp-q).to_f / a).abs) + p
+#     a = (y - q).to_f / ((x - p) ** 2)
+#
+#     開始 (p, q) 終端 (x, y) を入れると a が求まる
+#     x か y を入れたら片方が求まる
+#
+#   参照
+#
+#     高等学校数学I/二次関数 - Wikibooks
+#     http://ja.wikibooks.org/wiki/%E9%AB%98%E7%AD%89%E5%AD%A6%E6%A0%A1%E6%95%B0%E5%AD%A6I/%E4%BA%8C%E6%AC%A1%E9%96%A2%E6%95%B0
+#
 require "bundler/setup"
 
-require "rain_table"
-require "gnuplot"
+class ParabolaCurve < Struct.new(:p, :q, :x, :y)
+  def self.create(x_range, y_range)
+    new(x_range.min, y_range.min, x_range.max, y_range.max)
+  end
 
-class ExpCurve < Struct.new(:p, :q, :x, :y)
   def a
-    (y - q).to_f / ((x - p) ** 2)
+    Rational(y - q, (x - p) ** 2)
   end
 
-  def exp_by_level(level)
-    (a * (level - p) ** 2 + q)
+  def y_by_x(x)
+    ((a * (x - p) ** 2 + q)).to_f
   end
 
-  def level_by_exp(exp)
-    Math.sqrt(((exp - q).to_f / a).abs) + p
-  end
-
-  def level_elems
-    (p..x).collect do |level|
-      {:lv => level, :exp => exp_by_level(level)}
-    end
-  end
-
-  def exp_elems
-    (q..y).step(250).collect do |exp|
-      {:lv => level_by_exp(exp).round(2), :exp => exp}
-    end
+  def x_by_y(y)
+    (Math.sqrt(((y - q).to_f / a).abs) + p).to_f
   end
 end
 
-def output_file(records, filename)
-  Gnuplot.open do |gp|
-    Gnuplot::Plot.new(gp) do |plot|
-      plot.terminal "png font 'Ricty-Bold.ttf'"
-      plot.output filename
-      plot.title "経験値曲線"
-      plot.xlabel "Level"
-      plot.xtics 1
-      plot.ylabel "累計経験値"
-      plot.xrange "[0:*]"
-      plot.yrange "[0:*]"
-      records.each.with_index{|e, i|
-        plot.label "#{i.next} center at first #{e[:lv]}, #{e[:exp]} '#{e[:exp]}'"
-      }
-      plot.data << Gnuplot::DataSet.new([records.collect{|e|e[:lv]}, records.collect{|e|e[:exp]}]) do |ds|
-        ds.with = "linespoints pointtype 7 pointsize 0.0"
-        ds.notitle
+if $0 == __FILE__
+  require "rain_table"
+  require "gnuplot"
+
+  class ParabolaCurve
+    def level_elems
+      (p..x).collect {|level| {:lv => level, :exp => y_by_x(level)} }
+    end
+
+    def exp_elems
+      (q..y).step(250).collect {|exp| {:lv => x_by_y(exp).round(2), :exp => exp} }
+    end
+  end
+
+  def output_file(records, filename)
+    Gnuplot.open do |gp|
+      Gnuplot::Plot.new(gp) do |plot|
+        plot.terminal "png font 'Ricty-Bold.ttf'"
+        plot.output filename
+        plot.title "経験値曲線"
+        plot.xlabel "Level"
+        plot.xtics 1
+        plot.ylabel "累計経験値"
+        plot.xrange "[0:*]"
+        plot.yrange "[0:*]"
+        records.each.with_index{|e, i|
+          plot.label "#{i.next} center at first #{e[:lv]}, #{e[:exp]} '#{e[:exp]}'"
+        }
+        plot.data << Gnuplot::DataSet.new([records.collect{|e|e[:lv]}, records.collect{|e|e[:exp]}]) do |ds|
+          ds.with = "linespoints pointtype 7 pointsize 0.0"
+          ds.notitle
+        end
       end
     end
   end
+
+  # x_range = 55..74
+  # y_range = 3..59
+  # v = ParabolaCurve.create(x_range, y_range).y_by_x(74)
+  # exit
+
+  # レベル1..20で経験値0..999のときと考える場合
+  curve = ParabolaCurve.create(1..20, 0..999)
+  exp = curve.y_by_x(15)           # => 542.393351800554
+  curve.x_by_y(exp)                # => 15.0
+
+  # 経験値 540 のときのレベルは？
+
+  curve.x_by_y(542)           # => 14.994922574200181
+ 
+  # グラフ化
+
+  records = (1..20).collect do |level| # !> assigned but unused variable - id
+    {:lv => level, :exp => curve.y_by_x(level)}
+  end
+  tt records
+
+  tt curve.level_elems
+
+  output_file(records, "_exp_curve1.png")
+
+  # レベル2のときに経験値10にするには？
+
+  curve = ParabolaCurve.create(2..20, 10..999)
+  curve.y_by_x(2)           # => 10.0
+
+  # レベル 21..25 は崖っ縁にしたい場合は？
+
+  curve = ParabolaCurve.create(20..25, 999..10000)
+  curve.y_by_x(20)          # => 999.0
+  curve.y_by_x(21)          # => 1359.04
+  curve.y_by_x(22)          # => 2439.16
+  curve.y_by_x(23)          # => 4239.36
+  curve.y_by_x(24)          # => 6759.64
+  curve.y_by_x(25)          # => 10000.0
+
+  records += (21..25).collect do |level|
+    {:lv => level, :exp => curve.y_by_x(level)}
+  end
+
+  output_file(records, "_exp_curve2.png")
+
+  tt curve.level_elems
+  tt curve.exp_elems
+
+  # x_range.max のとき y_range.max になることのテスト
+  hash = Hash.new(0)
+  1000.times do
+    x_range = Range.new(*[rand(10), rand(10)].sort)
+    y_range = Range.new(*[rand(10), rand(10)].sort)
+    if x_range.size <= 1 || y_range.size <= 1
+      next
+    end
+    v = ParabolaCurve.create(x_range, y_range).y_by_x(x_range.max)
+    if v != y_range.max
+      p [x_range, y_range, v]
+    end
+    hash[(v == y_range.max)] += 1
+  end
+  p hash
+
 end
-
-# レベル1のとき経験値0でレベル9のとき999になる曲線でレベル5のときの経験値は？
-
-curve = ExpCurve.new(1, 0, 20, 999)
-exp = curve.exp_by_level(15)           # => 542.393351800554
-curve.level_by_exp(exp)                # => 15.0
-
-# 経験値 540 のときのレベルは？
-
-curve.level_by_exp(542)           # => 14.994922574200181
-
-# グラフ化
-
-records = (1..20).collect do |level|
-  {:lv => level, :exp => curve.exp_by_level(level)}
-end
-
-tt curve.level_elems
-
-output_file(records, "_exp_curve1.png")
-
-# レベル2のときに経験値10にするには？
-
-curve = ExpCurve.new(2, 10, 20, 999)
-curve.exp_by_level(2)           # => 10.0
-
-# レベル 21..25 は崖っ縁にしたい場合は？
-
-curve = ExpCurve.new(20, 999, 25, 10000)
-curve.exp_by_level(20)          # => 999.0
-curve.exp_by_level(21)          # => 1359.04
-curve.exp_by_level(22)          # => 2439.16
-curve.exp_by_level(23)          # => 4239.360000000001
-curve.exp_by_level(24)          # => 6759.64 # !> assigned but unused variable - id
-curve.exp_by_level(25)          # => 10000.0
-
-records += (21..25).collect do |level|
-  {:lv => level, :exp => curve.exp_by_level(level)}
-end
-
-output_file(records, "_exp_curve2.png")
-
-tt curve.level_elems
-tt curve.exp_elems
+# >> +----+--------------------+
+# >> | lv | exp                |
+# >> +----+--------------------+
+# >> |  1 |                0.0 |
+# >> |  2 | 2.7673130193905817 |
+# >> |  3 | 11.069252077562327 |
+# >> |  4 | 24.905817174515235 |
+# >> |  5 |  44.27700831024931 |
+# >> |  6 |  69.18282548476455 |
+# >> |  7 |  99.62326869806094 |
+# >> |  8 |  135.5983379501385 |
+# >> |  9 | 177.10803324099723 |
+# >> | 10 | 224.15235457063713 |
+# >> | 11 |  276.7313019390582 |
+# >> | 12 |  334.8448753462604 |
+# >> | 13 | 398.49307479224376 |
+# >> | 14 | 467.67590027700834 |
+# >> | 15 |   542.393351800554 |
+# >> | 16 |  622.6454293628809 |
+# >> | 17 |  708.4321329639889 |
+# >> | 18 |  799.7534626038781 |
+# >> | 19 |  896.6094182825485 |
+# >> | 20 |              999.0 |
+# >> +----+--------------------+
 # >> +----+--------------------+
 # >> | lv | exp                |
 # >> +----+--------------------+
@@ -194,20 +257,20 @@ tt curve.exp_elems
 # >> set label 20 center at first 20, 999.0 '999.0'
 # >> set label 21 center at first 21, 1359.04 '1359.04'
 # >> set label 22 center at first 22, 2439.16 '2439.16'
-# >> set label 23 center at first 23, 4239.360000000001 '4239.360000000001'
+# >> set label 23 center at first 23, 4239.36 '4239.36'
 # >> set label 24 center at first 24, 6759.64 '6759.64'
 # >> set label 25 center at first 25, 10000.0 '10000.0'
 # >> 
-# >> +----+-------------------+
-# >> | lv | exp               |
-# >> +----+-------------------+
-# >> | 20 |             999.0 |
-# >> | 21 |           1359.04 |
-# >> | 22 |           2439.16 |
-# >> | 23 | 4239.360000000001 |
-# >> | 24 |           6759.64 |
-# >> | 25 |           10000.0 |
-# >> +----+-------------------+
+# >> +----+---------+
+# >> | lv | exp     |
+# >> +----+---------+
+# >> | 20 |   999.0 |
+# >> | 21 | 1359.04 |
+# >> | 22 | 2439.16 |
+# >> | 23 | 4239.36 |
+# >> | 24 | 6759.64 |
+# >> | 25 | 10000.0 |
+# >> +----+---------+
 # >> +-------+------+
 # >> | lv    | exp  |
 # >> +-------+------+
@@ -249,3 +312,4 @@ tt curve.exp_elems
 # >> | 24.93 | 9749 |
 # >> |  25.0 | 9999 |
 # >> +-------+------+
+# >> {true=>818}
