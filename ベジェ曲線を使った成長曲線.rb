@@ -29,16 +29,19 @@ class BezierCurve < Struct.new(:x_range, :y_range, :pull)
     new(x_range, y_range, pull)
   end
 
-  def y_by_x(x)
+  def y_by_x(*args); _y_by_x(*args).to_f; end
+  def x_by_y(*args); _x_by_y(*args).to_f; end
+
+  def _y_by_x(x)
     # _x = (x - x_range.min).to_f / (x_range.size - 1)
     _x = Rational(x - x_range.min, (x_range.size - 1))
-    (y_range.min + curve.y_by_x(_x) * (y_range.size - 1)).to_f
+    y_range.min + curve.y_by_x(_x) * (y_range.size - 1)
   end
 
-  def x_by_y(y)
+  def _x_by_y(y)
     # _y = (y - y_range.min).to_f / (y_range.size - 1)
     _y = Rational(y - y_range.min, y_range.size - 1)
-    (x_range.min + curve.x_by_y(_y) * (x_range.size - 1)).to_f
+    x_range.min + curve.x_by_y(_y) * (x_range.size - 1)
   end
 
   def curve

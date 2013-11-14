@@ -33,16 +33,19 @@ class ParabolaCurve < Struct.new(:p, :q, :x, :y)
     new(x_range.min, y_range.min, x_range.max, y_range.max)
   end
 
+  def y_by_x(*args); _y_by_x(*args).to_f; end
+  def x_by_y(*args); _x_by_y(*args).to_f; end
+
+  def _y_by_x(x)
+    a * (x - p) ** 2 + q
+  end
+
+  def _x_by_y(y)
+    Math.sqrt(((y - q).to_f / a).abs) + p
+  end
+
   def a
     Rational(y - q, (x - p) ** 2)
-  end
-
-  def y_by_x(x)
-    ((a * (x - p) ** 2 + q)).to_f
-  end
-
-  def x_by_y(y)
-    (Math.sqrt(((y - q).to_f / a).abs) + p).to_f
   end
 end
 
